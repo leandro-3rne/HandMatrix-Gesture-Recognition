@@ -9,9 +9,9 @@ A comprehensive Computer Vision project implemented in C++ and Python to recogni
 This repository is structured into four distinct modules:
 
 1.  **Data Collector (C++):** A specialized tool to capture, pre-process, and label grayscale hand gestures into organized subfolders.
-2.  **Data Augmentation & Training (Python):** Scripts to augment raw data (rotation, noise) and train a CNN using TensorFlow/Keras, exporting the result to ONNX.
-3.  **Custom NN Inference (C++):** A Multilayer Perceptron implemented purely in C++ using the Eigen3 library, featuring manual Backpropagation.
-4.  **CNN Inference (C++):** Live inference engine using the Python-trained model via OpenCV's DNN module.
+2.  **Data Augmentation (Python):** A script to augment raw data (rotation, noise) to create a robust dataset.
+3.  **Model NN (C++):** A Multilayer Perceptron implemented purely in C++ using the Eigen3 library, featuring manual Backpropagation.
+4.  **Model CNN (Python & C++):** Contains the Python training script (TensorFlow) and the C++ inference engine (OpenCV DNN) using the exported ONNX model.
 
 ---
 
@@ -209,18 +209,23 @@ To reproduce the results or train with your own data, follow this strict order:
     * **'0'-'7'**: Select the class label (Fist, Peace, etc.).
     * **SPACE (Hold)**: Record images. They are saved into labeled subfolders automatically.
 
-### Step 2: Augmentation & Training 🐍
+### Step 2: Data Augmentation 🐍
 * Navigate to `02_Data_Augmenter`.
-* Run `augment_data.py`: This script reads the raw images, applies rotations and noise, and saves them to `training_data_final`.
-* Run `train_cnn.py`: This uses TensorFlow/Keras to train the CNN on the augmented data.
-* **Result:** A file named `hand_cnn.onnx` will be generated.
+* Run `augment_data.py`.
+* This script reads the raw images from the collector, applies rotations and noise, and saves the result to a new folder (`training_data_final`).
 
-### Step 3: Deployment (Inference) ⚡
+### Step 3: CNN Training (Python) 🧠
+* Navigate to `04_Model_CNN`.
+* Run `train_cnn.py`.
+* This script loads the augmented data, trains the TensorFlow model, and exports it as `hand_cnn.onnx` directly into this folder.
+
+### Step 4: Inference / Live Demo ⚡
 
 **Option A: The CNN (Recommended)**
 * Navigate to `04_Model_CNN`.
-* Copy the `hand_cnn.onnx` file into the build directory (next to the executable) AND the project directory.
-* Run the program. It uses OpenCV's DNN module to load the ONNX file for robust prediction.
+* Compile the C++ project.
+* Ensure `hand_cnn.onnx` is in the same directory as the executable.
+* Run the program to see the CNN predicting gestures in real-time.
 
 **Option B: The Custom NN**
 * Navigate to `03_Model_NN`.
@@ -248,7 +253,6 @@ If you want to skip data collection and jump straight to training, you can use m
 * `numpy < 2.0`
 * `opencv-python`
 * `tf2onnx`
-* `protobuf`
 
 ## 📝 License
 This project is open-source. Feel free to use and modify.
