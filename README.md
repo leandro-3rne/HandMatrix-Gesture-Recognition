@@ -253,6 +253,7 @@ If you want to skip data collection and jump straight to training, you can use m
 * `numpy < 2.0`
 * `opencv-python`
 * `tf2onnx`
+* `protobuf`
 
 ## 📝 License
 This project is open-source. Feel free to use and modify.
