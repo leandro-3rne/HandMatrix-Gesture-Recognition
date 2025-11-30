@@ -227,6 +227,13 @@ To reproduce the results or train with your own data, follow this strict order:
 * Navigate to `03_Model_CustomNN`.
 * This module reads the augmented data directly from the folders and performs training in C++ (Backpropagation) before switching to live inference mode.
 
+## 📂 Datasets
+
+If you want to skip data collection and jump straight to training, you can use my pre-recorded datasets.
+
+* **`00_Datasets/raw_data.zip`**: Contains the original grayscale images captured with the C++ Data Collector.
+* **`00_Datasets/augmented_data.zip`**: Contains the fully processed, rotated, and noisy images ready for CNN training.
+
 ---
 
 ## 🛠 Dependencies
