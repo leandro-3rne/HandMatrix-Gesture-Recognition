@@ -113,6 +113,30 @@ The custom neural network is a "Feedforward Neural Network" built using matrix o
 **Note on Dimensions:**
 The network currently uses "depth" (multiple layers) to learn hierarchical features. You could also increase the "width" (e.g., 512 or 1024 neurons per hidden layer). Wider layers can memorize more patterns but are prone to overfitting and require more computation. Deeper networks (more layers) generally learn more complex, abstract abstractions but are harder to train (vanishing gradient problem).
 
+**Implementation in C++ (`NeuralNet.h`):**
+```cpp
+// Definitions in NeuralNet.h using Eigen3
+Eigen::MatrixXd W1, W2, W3; // Weights
+Eigen::VectorXd b1, b2, b3; // Biases
+
+// Constructor Initialization
+// Matrix Dimensions: [Rows = Neurons in current layer, Cols = Neurons in previous layer]
+NeuralNet(int inputSize, int hidden1Size, int hidden2Size, int outputSize) {
+    
+    // Layer 1: Input (1024) -> Hidden 1 (256)
+    W1 = Eigen::MatrixXd::Random(hidden1Size, inputSize);  
+    b1 = Eigen::VectorXd::Random(hidden1Size);             
+
+    // Layer 2: Hidden 1 (256) -> Hidden 2 (64)
+    W2 = Eigen::MatrixXd::Random(hidden2Size, hidden1Size); 
+    b2 = Eigen::VectorXd::Random(hidden2Size);              
+
+    // Layer 3: Hidden 2 (64) -> Output (8)
+    W3 = Eigen::MatrixXd::Random(outputSize, hidden2Size);  
+    b3 = Eigen::VectorXd::Random(outputSize);               
+}
+```
+
 #### Forward Propagation
 Each neuron performs a weighted sum of its inputs ($Z$) and applies a non-linear activation function ($\sigma$). For a single layer $l$:
 
@@ -136,8 +160,6 @@ h1 = h1.unaryExpr([&](double x){ return sigmoid(x); });
 #### Activation Functions
 Activation functions introduce non-linearity, allowing the network to learn complex data.
 * **Sigmoid (Used in my MLP):** Maps values to (0, 1). Smooth gradient, good for probability-like outputs. *Cons:* Can lead to vanishing gradients in deep networks.
-* **ReLU (Rectified Linear Unit):** Maps values to [0, infinity). $f(x) = max(0, x)$. Very efficient and solves vanishing gradient issues. *Used in modern CNNs.*
-* **Softmax:** Used in the output layer for multi-class classification to turn raw scores into probabilities that sum to 1.
 
 $$
 \sigma(z) = \frac{1}{1 + e^{-z}}
@@ -149,11 +171,6 @@ $$
 \sigma'(z) = \sigma(z) \cdot (1 - \sigma(z))
 $$
 
-```cpp
-double sigmoid(double x) {
-    return 1.0 / (1.0 + std::exp(-x));
-}
-```
 
 #### Learning: Backpropagation
 The network learns by minimizing a Cost Function (Mean Squared Error). We use **Gradient Descent** to update weights. The gradient is calculated using the **Chain Rule**. To find how much a specific weight $w$ contributes to the error $C$, we calculate:
