@@ -1,6 +1,6 @@
 # HandMatrix: Gesture Recognition Engine ✋🤖
 
-This project is a real-time hand gesture recognition system capable of identifying 8 different hand signs (like Fist, Peace, Rock, etc.) via webcam. It serves as an educational deep dive into Computer Vision and Machine Learning, contrasting a manually implemented neural network with a state-of-the-art CNN approach. Essentially, it translates raw pixel data from your camera into actionable commands or classifications instantly.
+This project is a real-time hand gesture recognition system capable of identifying 8 different hand signs (like Fist, Peace, Rock, etc.) via webcam. It serves as an educational deep dive into Computer Vision and Machine Learning, contrasting a manually implemented neural network (MLP) with a state-of-the-art CNN approach. Essentially, it translates raw pixel data from your camera into actionable commands or classifications instantly.
 
 <p align="center">
   <img src="HandMatrix/README_Images/Fist_Gesture.png" width="20%" title="Fist Gesture">
