@@ -1,0 +1,7 @@
+# Note: Requires Python version >= 3.9 and < 3.13 (best 3.12)
+numpy<2.0
+opencv-python
+tensorflow
+tf_keras
+tf2onnx
+protobuf>=4.21,<5.0
