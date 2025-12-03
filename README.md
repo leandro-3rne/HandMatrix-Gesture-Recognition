@@ -221,7 +221,7 @@ These blocks act as **feature extractors**. They scan over the image to "see" pa
 * **Block 2 & 3:** Combine those lines to recognize complex shapes like **curves, fingers, or hand outlines**.
 
 **2. The Dense Classifier (The "Brain")**
-This part acts as the **decision maker**.
+This part acts as the **decision maker**. (Similar to the MLP)
 * **Flattening:** It takes the square feature maps from the convolutional blocks and stretches them into a long list of numbers (a vector).
 * **Dense Layers:** It analyzes this list to decide: *"Based on these curves and lines, there is a 99% chance this is a 'Peace' sign."*
 
