@@ -1,6 +1,6 @@
 # HandMatrix: Gesture Recognition Engine ✋🤖
 
-A comprehensive Computer Vision project implemented in C++ and Python to recognize hand gestures in real-time. This project explores and compares two distinct approaches: a **Custom Neural Network (MLP)** built entirely from scratch in C++ and a modern **Convolutional Neural Network (CNN)** trained in TensorFlow and deployed via ONNX.
+This project is a real-time hand gesture recognition system capable of identifying 8 different hand signs (like Fist, Peace, Rock, etc.) via webcam. It serves as an educational deep dive into Computer Vision and Machine Learning, contrasting a manually implemented neural network with a state-of-the-art CNN approach. Essentially, it translates raw pixel data from your camera into actionable commands or classifications instantly.
 
 ![C++](https://img.shields.io/badge/C++-20-blue.svg) ![OpenCV](https://img.shields.io/badge/OpenCV-4.x-green.svg) ![Python](https://img.shields.io/badge/Python-3.12-yellow.svg) ![TensorFlow](https://img.shields.io/badge/TensorFlow-Keras-orange.svg)
 
@@ -31,7 +31,7 @@ cv::threshold(diff, mask, 30, 255, cv::THRESH_BINARY);
 ```
 
 ### 2. Feature Extraction (Double Canny Trick)
-Standard Canny edge detection often only captures the outline. To get more internal details (texture/shape) and "fill" the hand features, a **Canny -> Blur -> Canny** sequence is used.
+Standard Canny edge detection often only captures the outline of the hand. To get more internal details (like wrinkles or finger separation) and fill the shape better, I experimented with a sequence: **Canny -> GaussianBlur -> Canny**. This "double Canny" approach tends to pick up more texture and creates a denser representation of the hand, almost "filling" it with features rather than just outlining it.
 
 ```cpp
 // Convert to HSV and extract Saturation channel (channel 1)
@@ -41,7 +41,7 @@ cv::Mat saturation = channels[1];
 
 // First Pass
 cv::Canny(saturation, edges, 50, 150);
-// Gaussian Blur to merge close edges
+// Blur to merge close edges
 cv::GaussianBlur(edges, edges, cv::Size(5, 5), 0);
 // Second Pass to re-sharpen
 cv::Canny(edges, edges, 50, 150);
@@ -92,13 +92,13 @@ This project highlights the fundamental differences between classical fully conn
 The custom neural network is a "Feedforward Neural Network" built using matrix operations via the **Eigen3** library. It processes the input image ($32 \times 32$ pixels) as a flattened vector of 1024 distinct values.
 
 #### Architecture Topology
-* **Input Layer:** 1024 neurons.
+* **Input Layer:** 1024 neurons ($32 \times 32$ pixels flattened).
 * **Hidden Layer 1:** 256 neurons.
 * **Hidden Layer 2:** 64 neurons.
 * **Output Layer:** 8 neurons (representing the 8 gesture classes).
 
 **Note on Dimensions:**
-The "width" of a layer refers to the number of neurons (e.g., 256). Increasing width allows the network to memorize more complex patterns but increases the risk of overfitting. "Depth" refers to the number of layers.
+The network currently uses "depth" (multiple layers) to learn hierarchical features. You could also increase the "width" (e.g., 512 or 1024 neurons per hidden layer). Wider layers can memorize more patterns but are prone to overfitting and require more computation. Deeper networks (more layers) generally learn more complex, abstract abstractions but are harder to train (vanishing gradient problem).
 
 #### Forward Propagation
 Each neuron performs a weighted sum of its inputs ($Z$) and applies a non-linear activation function ($\sigma$). For a single layer $l$:
@@ -120,8 +120,11 @@ VectorXd h1 = (W1 * input + b1);
 h1 = h1.unaryExpr([&](double x){ return sigmoid(x); });
 ```
 
-#### Activation Function: Sigmoid
-This project uses the Sigmoid function to squash values between 0 and 1.
+#### Activation Functions
+Activation functions introduce non-linearity, allowing the network to learn complex data.
+* **Sigmoid (Used in my MLP):** Maps values to (0, 1). Smooth gradient, good for probability-like outputs. *Cons:* Can lead to vanishing gradients in deep networks.
+* **ReLU (Rectified Linear Unit):** Maps values to [0, infinity). $f(x) = max(0, x)$. Very efficient and solves vanishing gradient issues. *Used in modern CNNs.*
+* **Softmax:** Used in the output layer for multi-class classification to turn raw scores into probabilities that sum to 1.
 
 $$
 \sigma(z) = \frac{1}{1 + e^{-z}}
@@ -140,11 +143,16 @@ double sigmoid(double x) {
 ```
 
 #### Learning: Backpropagation
-The network learns by minimizing a Cost Function (Mean Squared Error). We calculate the gradient of the error with respect to the weights using the **Chain Rule** and update the weights (Gradient Descent).
+The network learns by minimizing a Cost Function (Mean Squared Error). We use **Gradient Descent** to update weights. The gradient is calculated using the **Chain Rule**. To find how much a specific weight $w$ contributes to the error $C$, we calculate:
 
 $$
 \frac{\partial C}{\partial w} = \underbrace{\frac{\partial C}{\partial a}}_{\text{Error from next layer}} \cdot \underbrace{\frac{\partial a}{\partial z}}_{\text{Activation derivative}} \cdot \underbrace{\frac{\partial z}{\partial w}}_{\text{Input from prev. layer}}
 $$
+
+**For Multiple Layers:**
+The error is propagated backward layer by layer. The error for a hidden layer is calculated based on the error of the *following* layer, weighted by the connections between them.
+$$ \delta^{[l]} = (W^{[l+1]})^T \cdot \delta^{[l+1]} \odot \sigma'(z^{[l]}) $$
+Where $\delta$ is the error term for a layer. This allows us to update weights deep inside the network based on the final output error.
 
 **Implementation in C++ (`NeuralNet.h`):**
 ```cpp
@@ -164,10 +172,10 @@ W3 += learningRate * outputGradient * h2.transpose();
 
 While the MLP treats the image as an unstructured list of numbers, the CNN preserves the spatial structure (height, width, channels).
 
-
+[attachment_0](attachment)
 
 #### The Convolution Operation (Kernels)
-Instead of fully connected weights, the CNN uses learnable **filters (kernels)**. A kernel is typically a small matrix (e.g., $3 \times 3$) that "slides" over the input image.
+Instead of fully connected weights, the CNN uses learnable **filters (kernels)**. A kernel "slides" over the input image pixel by pixel. At each step, it performs element-wise multiplication with the image patch and sums the results.
 
 **Example Kernel (Edge Detection):**
 This simple $3 \times 3$ matrix detects vertical edges by looking for changes from bright to dark pixels.
@@ -175,7 +183,7 @@ This simple $3 \times 3$ matrix detects vertical edges by looking for changes fr
 $$
 K = \begin{bmatrix}
 -1 & 0 & 1 \\
--1 & 0 & 1 \\
+-2 & 0 & 2 \\
 -1 & 0 & 1
 \end{bmatrix}
 $$
@@ -185,6 +193,9 @@ The CNN learns these numbers automatically during training!
 $$
 (I * K)(i, j) = \sum_m \sum_n I(i+m, j+n) \cdot K(m, n)
 $$
+
+#### Pooling (Downsampling)
+To simplify the information and make the model robust to small shifts, we use **Max Pooling**. Imagine a $2 \times 2$ window sliding over the feature map. It only keeps the *largest* value in that window and discards the rest. This reduces the image size by half (e.g., from $32 \times 32$ to $16 \times 16$) while keeping the most important feature (e.g., "there is a strong edge here").
 
 #### Network Definition (Python/Keras)
 The architecture consists of three convolutional blocks followed by a dense classifier.
@@ -218,12 +229,9 @@ model = models.Sequential([
 ])
 ```
 
-#### Pooling (Downsampling)
-To simplify the information and make the model robust to small shifts, we use **Max Pooling**. Imagine a $2 \times 2$ window sliding over the feature map. It only keeps the *largest* value in that window and discards the rest. This reduces the image size by half (e.g., from $32 \times 32$ to $16 \times 16$) while keeping the most important feature (e.g., "there is a strong edge here").
-
-#### Activation Functions: ReLU & Softmax
-* **ReLU (Rectified Linear Unit):** Used in hidden layers. It replaces all negative values with zero ($f(x) = \max(0, x)$). This is computationally efficient and helps the network learn faster than Sigmoid.
-* **Softmax:** Used in the final layer to turn raw output scores into probabilities (e.g., Fist: 0.1, Peace: 0.8, ...). The sum of all outputs is always 1.0.
+#### Activation Function: ReLU & Softmax
+* **ReLU:** Used in hidden layers to introduce non-linearity without the vanishing gradient problem.
+* **Softmax:** Used in the final layer to output probabilities (e.g., Fist: 0.1, Peace: 0.8, ...) that sum up to 1.
 
 $$
 f(x) = \max(0, x) \quad \text{(ReLU)}
