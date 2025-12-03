@@ -30,8 +30,8 @@ cv::absdiff(cleanRoi, background, diff);
 cv::threshold(diff, mask, 30, 255, cv::THRESH_BINARY);
 ```
 
-### 2. Feature Extraction (Edge Detection)
-We use the **Canny Algorithm** to detect edges. To make the detection robust against lighting changes, we first convert the image to the HSV color space and extract the Saturation channel.
+### 2. Feature Extraction (Double Canny Trick)
+Standard Canny edge detection often only captures the outline. To get more internal details (texture/shape) and "fill" the hand features, a **Canny -> Blur -> Canny** sequence is used.
 
 ```cpp
 // Convert to HSV and extract Saturation channel (channel 1)
@@ -39,8 +39,12 @@ cv::cvtColor(processingImg, hsv, cv::COLOR_BGR2HSV);
 cv::split(hsv, channels);
 cv::Mat saturation = channels[1];
 
-// Apply Canny Edge Detection
+// First Pass
 cv::Canny(saturation, edges, 50, 150);
+// Gaussian Blur to merge close edges
+cv::GaussianBlur(edges, edges, cv::Size(5, 5), 0);
+// Second Pass to re-sharpen
+cv::Canny(edges, edges, 50, 150);
 ```
 
 ### 3. Morphological Operations
@@ -92,6 +96,9 @@ The custom neural network is a "Feedforward Neural Network" built using matrix o
 * **Hidden Layer 1:** 256 neurons.
 * **Hidden Layer 2:** 64 neurons.
 * **Output Layer:** 8 neurons (representing the 8 gesture classes).
+
+**Note on Dimensions:**
+The "width" of a layer refers to the number of neurons (e.g., 256). Increasing width allows the network to memorize more complex patterns but increases the risk of overfitting. "Depth" refers to the number of layers.
 
 #### Forward Propagation
 Each neuron performs a weighted sum of its inputs ($Z$) and applies a non-linear activation function ($\sigma$). For a single layer $l$:
@@ -157,8 +164,23 @@ W3 += learningRate * outputGradient * h2.transpose();
 
 While the MLP treats the image as an unstructured list of numbers, the CNN preserves the spatial structure (height, width, channels).
 
-#### The Convolution Operation
-Instead of fully connected weights, the CNN uses learnable **filters (kernels)**. A kernel slides over the input image to produce feature maps.
+
+
+#### The Convolution Operation (Kernels)
+Instead of fully connected weights, the CNN uses learnable **filters (kernels)**. A kernel is typically a small matrix (e.g., $3 \times 3$) that "slides" over the input image.
+
+**Example Kernel (Edge Detection):**
+This simple $3 \times 3$ matrix detects vertical edges by looking for changes from bright to dark pixels.
+
+$$
+K = \begin{bmatrix}
+-1 & 0 & 1 \\
+-1 & 0 & 1 \\
+-1 & 0 & 1
+\end{bmatrix}
+$$
+
+The CNN learns these numbers automatically during training!
 
 $$
 (I * K)(i, j) = \sum_m \sum_n I(i+m, j+n) \cdot K(m, n)
@@ -171,13 +193,11 @@ The architecture consists of three convolutional blocks followed by a dense clas
 These blocks act as **feature extractors**. They scan over the image to "see" patterns.
 * **Block 1:** Detects simple features like **edges, lines, and corners**.
 * **Block 2 & 3:** Combine those lines to recognize complex shapes like **curves, fingers, or hand outlines**.
-* *Note:* They also shrink the image (using Pooling) to focus only on the most important information.
 
 **2. The Dense Classifier (The "Brain")**
 This part acts as the **decision maker**.
 * **Flattening:** It takes the square feature maps from the convolutional blocks and stretches them into a long list of numbers (a vector).
 * **Dense Layers:** It analyzes this list to decide: *"Based on these curves and lines, there is a 99% chance this is a 'Peace' sign."*
-
 
 ```python
 model = models.Sequential([
@@ -197,6 +217,21 @@ model = models.Sequential([
     layers.Dense(NUM_CLASSES, activation='softmax') // Softmax for probability distribution
 ])
 ```
+
+#### Pooling (Downsampling)
+To simplify the information and make the model robust to small shifts, we use **Max Pooling**. Imagine a $2 \times 2$ window sliding over the feature map. It only keeps the *largest* value in that window and discards the rest. This reduces the image size by half (e.g., from $32 \times 32$ to $16 \times 16$) while keeping the most important feature (e.g., "there is a strong edge here").
+
+#### Activation Functions: ReLU & Softmax
+* **ReLU (Rectified Linear Unit):** Used in hidden layers. It replaces all negative values with zero ($f(x) = \max(0, x)$). This is computationally efficient and helps the network learn faster than Sigmoid.
+* **Softmax:** Used in the final layer to turn raw output scores into probabilities (e.g., Fist: 0.1, Peace: 0.8, ...). The sum of all outputs is always 1.0.
+
+$$
+f(x) = \max(0, x) \quad \text{(ReLU)}
+$$
+
+$$
+P(y=j \mid x) = \frac{e^{z_j}}{\sum_{k=1}^{K} e^{z_k}} \quad \text{(Softmax)}
+$$
 
 #### Deployment via ONNX
 The trained model is exported to the **Open Neural Network Exchange (ONNX)** format, allowing it to be loaded in C++ using OpenCV's DNN module without requiring TensorFlow at runtime.
@@ -253,7 +288,7 @@ If you want to skip data collection and jump straight to training, you can use m
 * **`00_Datasets/raw_data.zip`**: Contains the original grayscale images captured with the C++ Data Collector.
 * **`00_Datasets/augmented_data.zip`**: Contains the fully processed, rotated, and noisy images ready for CNN training.
 
-(Make sure to unzip the files first tho)
+(Make sure to unzip the files first!)
 
 ---
 
