@@ -338,12 +338,17 @@ If you want to skip data collection and jump straight to training, you can use m
 * C++20 Compiler (MSVC, GCC, or Clang)
 
 **Python Scripts:**
-* Python 3.x
+* **Python 3.9 - 3.12** (Python 3.13 is not yet supported by TensorFlow!)
 * `tensorflow` (with `tf_keras`)
 * `numpy < 2.0`
 * `opencv-python`
 * `tf2onnx`
-* `protobuf`
+* `protobuf` (Version 4.x recommended)
+
+To install Python dependencies:
+```bash
+pip install -r 02_Data_Augmenter/requirements.txt
+```
 
 ## 📝 License
 This project is open-source. Feel free to use and modify.
