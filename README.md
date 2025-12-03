@@ -165,9 +165,23 @@ $$
 **For Multiple Layers:**
 The error is propagated backward layer by layer. The error for a hidden layer is calculated based on the error of the *following* layer, weighted by the connections between them.
 
-$$ \delta^{[l]} = (W^{[l+1]})^T \cdot \delta^{[l+1]} \odot \sigma'(z^{[l]}) $$
+$$
+\delta^{[l]} = (W^{[l+1]})^T \cdot \delta^{[l+1]} \odot \sigma'(z^{[l]})
+$$
 
-Where $\delta$ is the error term for a layer. This allows us to update weights deep inside the network based on the final output error.
+Where $\delta$ is the error term for a layer.
+
+**The Weight Update Step:**
+Once the gradients are calculated, we update the weights to minimize the error. We subtract a portion of the gradient from the current weights:
+
+$$
+W_{new} = W_{old} - \eta \cdot \frac{\partial C}{\partial W}
+$$
+
+* **$\frac{\partial C}{\partial W}$ (Gradient):** Indicates the direction to increase the error. We subtract it to go the opposite way (downhill).
+* **$\eta$ (Learning Rate):** A hyperparameter that controls the **size of the step** we take.
+    * *If too high:* The network might overshoot the minimum and fail to learn.
+    * *If too low:* Training becomes very slow as the network takes tiny steps.
 
 **Implementation in C++ (`NeuralNet.h`):**
 ```cpp
